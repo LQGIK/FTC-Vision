@@ -90,14 +90,8 @@ def drawBoundingBoxes(input, contours):
         x, y, w, h = cv2.boundingRect(cnt)
         area = cv2.contourArea(cnt)
         output = cv2.rectangle(input, (x,y), (x+w, y+h), (0, 255 ,0), 2)
-    return output
 
-def drawBoundingBox(input, contour):
-    x, y, w, h = cv2.boundingRect(contour)
-    area = cv2.contourArea(contour)
-    output = cv2.rectangle(input, (x,y), (x+w, y+h), (0, 255 ,0), 2)
     return output
-
 
 def hsv_pipeline(input):
 
@@ -108,38 +102,28 @@ def hsv_pipeline(input):
     blur = cv2.GaussianBlur(hsv_frame, (35, 35), 0)
 
     # Thresholding
-    thresh = cv2.inRange(blur, MIN_HSV, MAX_HSV)
+    thresh = cv2.inRange(blur, (100, 0, 0), (120, 255, 255))
 
-    # Erosion and Dilation for filtering
     eroded = cv2.erode(thresh, (5, 5))
     dilated = cv2.dilate(eroded, (5, 5))
 
     # Get contours and error check
-    contours, _ = cv2.findContours(dilated, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    contours, hierarchy = cv2.findContours(dilated, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     if (len(contours) == 0):
         return input
 
-    # Retrieve crop of the goal
-    goalContour = max(contours, key = cv2.contourArea)
-    x, y, w, h = cv2.boundingRect(goalContour)
-    goalCrop = eroded[y:y+h, x:x+w]
-
-    # Get logo contours and error check
-    contours, _ = cv2.findContours(dilated, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    if (len(contours) == 0):
-        return input
-
-    logoContour = max(contours, key = cv2.contourArea)
-    x, y, w, h = cv2.boundingRect(logoContour)
-
-    output = cv2.rectangle(goalCrop, (x,y), (x+w, y+h), (0, 255 ,0), 2)
+    # Draw contours
+    output = drawBoundingBoxes(input, contours)
 
     # Get error
     global error
-    center_x = x + (w//2)
-    center_y = y + (h//2)
-    center = (center_x, center_y)
-    error += (IMG_WIDTH//2) - center_x
+    for cnt in contours:
+        x, y, w, h = cv2.boundingRect(cnt)
+        center_x = x + (w//2)
+        center_y = y + (h//2)
+        center = (center_x, center_y)
+        error += (IMG_WIDTH//2) - center_x
+    error /= len(contours)
 
     return output
 
