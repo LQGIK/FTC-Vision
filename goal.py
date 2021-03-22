@@ -1,7 +1,7 @@
 import numpy as np
 import cv2
 
-MAX_HUE = 120
+MAX_HUE = 125
 MIN_HUE = 100
 
 MAX_SAT = 255
@@ -80,6 +80,7 @@ def getTwoLargestContours(contours):
     return goalContours
 
 
+
 def drawBoundingBoxes(input, contours):
     output = input
     goalContours = list(contours)
@@ -93,7 +94,79 @@ def drawBoundingBoxes(input, contours):
 
     return output
 
+def findLargestContourIndex(contours):
+    maxArea = 0
+    maxIndex = 0
+    for i in range(len(contours)):
+        cnt = contours[i]
+        area = cv2.contourArea(cnt)
+        if area > maxArea:
+            maxArea = area
+            maxIndex = i
+    return maxIndex
+
+def findNLargestContours(n, contours):
+    new_contours = []
+    for i in range(n):
+        li = findLargestContourIndex(contours)
+        new_contours.append(contours[li])
+        
+        contours.pop(li)
+        if len(contours) == 0:
+            break 
+    return new_contours
+
+def getGoalRect(new_contours):
+
+    # If there is one contour, return first
+    x, y, w, h = cv2.boundingRect(new_contours[0])
+
+    # If there are two contours, extrapolate
+    if len(new_contours) == 2:
+
+        # If we have two boxes or more, retrieve overarching rectanlge
+        xl, yl, wl, hl = 0, 0, 0, 0 
+        xr, yr, wr, hr = 0, 0, 0, 0
+
+        # Get bounding rectangles of both
+        x1, y1, w1, h1 = cv2.boundingRect(new_contours[0])
+        x2, y2, w2, h2 = cv2.boundingRect(new_contours[1])
+
+        # Check if two boxes are within feasible distance
+        diff = abs(x1 - x2)
+        if diff > 500:
+            return x, y, w, h
+
+        # Check which side rectangles are on, and calculate surrounding box
+        if x1 < x2:
+            xl = x1
+            yl = y1
+            xr = x2
+            yr = y2
+            wr = w2
+            hr = h2
+        else:
+            xl = x2
+            yl = y2
+            xr = x1
+            yr = y1
+            wr = w1
+            hr = h1
+
+        x = xl
+        y = yl
+        w = (abs(xr - xl) + wr)
+        h = (abs(yr - yl) + hr)
+
+
+    return x, y, w, h
+ 
+
+
 def hsv_pipeline(input):
+
+    # Set output to input
+    output = input
 
     # Convert to HSV
     hsv_frame = cv2.cvtColor(input, cv2.COLOR_BGR2HSV)
@@ -102,8 +175,9 @@ def hsv_pipeline(input):
     blur = cv2.GaussianBlur(hsv_frame, (35, 35), 0)
 
     # Thresholding
-    thresh = cv2.inRange(blur, (100, 0, 0), (120, 255, 255))
+    thresh = cv2.inRange(blur, MIN_HSV, MAX_HSV)
 
+    # Erosion and Dilation
     eroded = cv2.erode(thresh, (5, 5))
     dilated = cv2.dilate(eroded, (5, 5))
 
@@ -112,19 +186,31 @@ def hsv_pipeline(input):
     if (len(contours) == 0):
         return input
 
-    # Draw contours
-    output = drawBoundingBoxes(input, contours)
+    # Get two largest contours (might return less than 2 contours)
+    new_contours = findNLargestContours(2, contours)
+    
+    # Get coords of goal rectangle, if one, return the first contour, if two, extrapolate
+    x, y, w, h = getGoalRect(new_contours) 
 
-    # Get error
+    # Draw goal rectangle
+    cv2.rectangle(output, (x, y), (x + w, y + h), (0, 0, 255), 2)
+
+    # Calculate error
     global error
-    for cnt in contours:
-        x, y, w, h = cv2.boundingRect(cnt)
-        center_x = x + (w//2)
-        center_y = y + (h//2)
-        center = (center_x, center_y)
-        error += (IMG_WIDTH//2) - center_x
-    error /= len(contours)
+    center_x = x + (w//2)
+    center_y = y + (h//2)
+    error = (IMG_WIDTH//2) - center_x
 
+    # Log center
+    global font
+    coords = str("(" + str(center_x) + ", " + str(center_y) + ")")
+    output = cv2.putText(output, coords, (center_x, center_y),  
+                            font, 0.5, (0, 255, 0))  
+
+    # Draw two box contours
+    output = drawBoundingBoxes(output, new_contours)
+
+    
     return output
 
 
