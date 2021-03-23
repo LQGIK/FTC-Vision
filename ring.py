@@ -58,14 +58,12 @@ def contourPipeline(input, contours):
 
 
 def addTargetBox(input, side_length):
-
     center_x = IMG_WIDTH / 2
     center_y = IMG_HEIGHT / 2
     half_side_length = side_length / 2
     upper_left = (int(center_x - half_side_length), int(center_y - half_side_length))
     bottom_right = (int(center_x + half_side_length), int(center_y + half_side_length))
     output = cv2.rectangle(input, upper_left, bottom_right, (0, 255, 0), 2)
-
     return output
 
 
@@ -75,7 +73,6 @@ def drawBoundingBoxes(input, contours):
         x, y, w, h = cv2.boundingRect(cnt)
         area = cv2.contourArea(cnt)
         output = cv2.rectangle(input, (x,y), (x+w, y+h), (0, 255, 0), 2)
-
     return output
 
 
@@ -89,6 +86,7 @@ def findWidestContourIndex(contours):
             maxWidth = w
             maxIndex = i
     return maxIndex
+
 
 def findNWidestContours(n, contours):
     new_contours = []
@@ -106,7 +104,6 @@ def ring_pipeline(input):
 
     global IMG_HEIGHT, IMG_WIDTH
     IMG_HEIGHT, IMG_WIDTH, _ = input.shape
-
 
     # Set output to input
     output = input
@@ -155,7 +152,7 @@ def ring_pipeline(input):
 
     
 
-
+        # Ring detection
         if h < (0.5 * w):
             ring_count = 1
         else:
@@ -175,17 +172,16 @@ def ring_pipeline(input):
 def channel_pipeline(input, n):
 
     # Convert to HSV
-    hsv_frame = cv2.cvtColor(input, cv2.COLOR_BGR2YCrCb)
+    convert_frame = cv2.cvtColor(input, cv2.COLOR_BGR2YCrCb)
 
     # Extract channel
-    channel = hsv_frame[:,:,n]
+    channel = convert_frame[:,:,n]
 
     return channel 
 
 
 def main():
     cap = cv2.VideoCapture(0)
-    cap.set(cv2.CAP_PROP_EXPOSURE,-1)
 
     # Get image dimensions
     global IMG_HEIGHT, IMG_WIDTH, error

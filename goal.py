@@ -182,8 +182,9 @@ def goal_pipeline(input):
     global error
     center_x = x + (w//2)
     center_y = y + (h//2)
-    error = (IMG_WIDTH//2) - center_x
-    error = pixels2Deg(error)
+    pixel_error = (IMG_WIDTH//2) - center_x
+    error = pixels2Deg(pixel_error)
+    cv2.line(output, (center_x, center_y), (center_x + pixel_error, center_y), (0, 0, 255), thickness)
 
     # Log center
     global font
