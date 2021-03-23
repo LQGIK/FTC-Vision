@@ -69,18 +69,6 @@ def addTargetBox(input, side_length):
     return output
 
 
-def getTwoLargestContours(contours):
-    contourAreas = [cv2.contourArea(cnt) for cnt in contours]
-    outer_i = contourAreas.index(max(contourAreas))
-    contourAreas.pop(outer_i)
-    inner_i = contourAreas.index(max(contourAreas))
-    if (outer_i <= inner_i):
-        inner_i += 1
-    goalContours = [contours[outer_i], contours[inner_i]]
-
-    return goalContours
-
-
 def drawBoundingBoxes(input, contours):
     output = input
     for cnt in contours:
@@ -89,29 +77,6 @@ def drawBoundingBoxes(input, contours):
         output = cv2.rectangle(input, (x,y), (x+w, y+h), (0, 255, 0), 2)
 
     return output
-
-
-def findLargestContourIndex(contours):
-    maxArea = 0
-    maxIndex = 0
-    for i in range(len(contours)):
-        cnt = contours[i]
-        area = cv2.contourArea(cnt)
-        if area > maxArea:
-            maxArea = area
-            maxIndex = i
-    return maxIndex
-
-def findNLargestContours(n, contours):
-    new_contours = []
-    for i in range(n):
-        li = findLargestContourIndex(contours)
-        new_contours.append(contours[li])
-        
-        contours.pop(li)
-        if len(contours) == 0:
-            break 
-    return new_contours
 
 
 def findWidestContourIndex(contours):
@@ -166,7 +131,7 @@ def ring_pipeline(input):
     global ring_count
     if (len(contours) > 0):
         # Get two largest contours (might return less than 2 contours)
-        new_contours = findNLargestContours(1, contours)
+        new_contours = findNWidestContours(1, contours)
 
         # Get bounding box
         x, y, w, h = cv2.boundingRect(new_contours[0])

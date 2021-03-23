@@ -12,12 +12,11 @@ MIN_VAL = 90
 
 MIN_HSV = (MIN_HUE, MIN_SAT, MIN_VAL)
 MAX_HSV = (MAX_HUE, MAX_SAT, MAX_VAL)
-
-IMG_WIDTH = 0
-IMG_HEIGHT = 0
-
+FOV = 1.2
+IMG_WIDTH, IMG_HEIGHT, error = 0, 0, 0
+color = (0, 255, 0)
+thickness = 2
 font = cv2.FONT_HERSHEY_COMPLEX
-error = 0
 
 def contourPipeline(input, contours):
 
@@ -57,7 +56,6 @@ def contourPipeline(input, contours):
 
 
 def addTargetBox(input, side_length):
-
     center_x = IMG_WIDTH / 2
     center_y = IMG_HEIGHT / 2
     half_side_length = side_length / 2
@@ -67,30 +65,15 @@ def addTargetBox(input, side_length):
 
     return output
 
-
-def getTwoLargestContours(contours):
-    contourAreas = [cv2.contourArea(cnt) for cnt in contours]
-    outer_i = contourAreas.index(max(contourAreas))
-    contourAreas.pop(outer_i)
-    inner_i = contourAreas.index(max(contourAreas))
-    if (outer_i <= inner_i):
-        inner_i += 1
-    goalContours = [contours[outer_i], contours[inner_i]]
-
-    return goalContours
-
-
+def pixels2Deg(pixels):
+    deg = pixels * (FOV / IMG_WIDTH)
+    return deg
 
 def drawBoundingBoxes(input, contours):
     output = input
-    goalContours = list(contours)
-    if len(goalContours) > 2:
-        goalContours = getTwoLargestContours(contours)
-
-    for cnt in goalContours:
+    for cnt in contours:
         x, y, w, h = cv2.boundingRect(cnt)
-        area = cv2.contourArea(cnt)
-        output = cv2.rectangle(input, (x,y), (x+w, y+h), (0, 255 ,0), 2)
+        cv2.rectangle(input, (x,y), (x+w, y+h), (0, 255, 0), 2)
 
     return output
 
@@ -163,7 +146,7 @@ def getGoalRect(new_contours):
  
 
 
-def hsv_pipeline(input):
+def goal_pipeline(input):
 
     # Set output to input
     output = input
@@ -200,6 +183,7 @@ def hsv_pipeline(input):
     center_x = x + (w//2)
     center_y = y + (h//2)
     error = (IMG_WIDTH//2) - center_x
+    error = pixels2Deg(error)
 
     # Log center
     global font
@@ -229,13 +213,13 @@ def main():
         ret, frame = cap.read()
 
         # Run processing pipeline on image
-        output = hsv_pipeline(frame)
+        output = goal_pipeline(frame)
 
         # Flip the frame just so it's nice
         flipHorizontal = cv2.flip(output, 1)
 
         # Log the error on screen
-        flipHorizontal = cv2.putText(flipHorizontal, str(error), (IMG_WIDTH - 100, IMG_HEIGHT - 100), font, 1, (0, 255, 0))
+        flipHorizontal = cv2.putText(flipHorizontal, "Error: " + str(error), (IMG_WIDTH - 200, IMG_HEIGHT - 100), font, 0.5, (0, 255, 0))
 
         # Display the resulting frame
         cv2.imshow('frame', flipHorizontal)
