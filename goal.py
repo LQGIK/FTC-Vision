@@ -1,12 +1,15 @@
 import numpy as np
 import cv2
 
+# 25 margin
 MAX_HUE = 125
 MIN_HUE = 100
 
+# 90 margin
 MAX_SAT = 255
 MIN_SAT = 165
 
+# 110 margin
 MAX_VAL = 200
 MIN_VAL = 90 
 
@@ -148,6 +151,8 @@ def getGoalRect(new_contours):
 
 def goal_pipeline(input):
 
+    global MIN_HSV, MAX_HSV
+
     # Set output to input
     output = input
 
@@ -172,6 +177,75 @@ def goal_pipeline(input):
     # Get two largest contours (might return less than 2 contours)
     new_contours = findNLargestContours(2, contours)
     
+    # Get rects
+    rects = []
+    for contour in new_contours:
+        rects.append(cv2.boundingRect(contour))
+
+
+
+    aveH = 0
+    aveS = 0
+    aveV = 0
+    for rect in rects:
+        x, y, w, h = rect
+        submat = hsv_frame[y:y+h,x:x+w,:]
+        h_frame = submat[:,:,0]
+        s_frame = submat[:,:,1]
+        v_frame = submat[:,:,2]
+
+        tmpAveH = np.mean(h_frame)
+        tmpAveS = np.mean(s_frame)
+        tmpAveV = np.mean(v_frame)
+
+        aveH += tmpAveH
+        aveS += tmpAveS
+        aveV += tmpAveV
+
+    aveH /= 2
+    aveS /= 2
+    aveV /= 2
+
+    print("Ave HSV: " + str(aveH) + "   " + str(aveS) + "   " + str(aveV))
+
+    '''
+    # 25 margin
+    MAX_HUE = 125
+    MIN_HUE = 100
+
+    # 90 margin
+    MAX_SAT = 255
+    MIN_SAT = 165
+
+    # 110 margin
+    MAX_VAL = 200
+    MIN_VAL = 90 
+    '''
+
+    hMOE = 25
+    sMOE = 90
+    vMOE = 110
+
+    hMin = aveH - hMOE
+    hMax = aveH + hMOE
+
+    sMin = aveS - sMOE
+    sMax = aveS + sMOE
+
+    vMin = aveV - vMOE
+    vMax = aveV + vMOE
+
+    hMin = 0 if hMin < 0 else hMin
+    sMin = 0 if sMin < 0 else sMin
+    vMin = 0 if vMin < 0 else vMin
+
+    hMax = 255 if hMax > 255 else hMax
+    sMax = 255 if sMax > 255 else sMax
+    vMax = 255 if vMax > 255 else vMax
+
+    MAX_HSV = [hMax, sMax, vMax]
+    MIN_HSV = [hMin, sMin, vMin]
+
     # Get coords of goal rectangle, if one, return the first contour, if two, extrapolate
     x, y, w, h = getGoalRect(new_contours) 
 
@@ -201,7 +275,7 @@ def goal_pipeline(input):
 
 def main():
     cap = cv2.VideoCapture(0)
-    cap.set(cv2.CAP_PROP_EXPOSURE,-1)
+    cap.set(cv2.CAP_PROP_EXPOSURE,-5)
 
     # Get image dimensions
     global IMG_HEIGHT, IMG_WIDTH, error
