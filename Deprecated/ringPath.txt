@@ -1,0 +1,19 @@
+
+1) Detect rings, cleaning out mistaken detections, store bounding rects
+2) Sort ring objects by closeness (width in descending order)
+3) Iterate rings
+	calculate hypotenuse distance to ring
+	calculate horizontal degree error to ring
+	auto-orient to ring, set locked angle and strafe distance
+	
+	
+or
+
+
+1) Detect rings, cleaning out mistaken detections, store bounding rects
+2) Sort ring objects by closeness (width in descending order)
+3) Iterate rings
+	calculate hypotenuse distance to ring
+	calculate horizontal degree error to ring
+	calculate field relative angle of ring = degree_error + curO.a
+	store pairs of x and y coordinates of rings 

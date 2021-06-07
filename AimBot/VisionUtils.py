@@ -18,6 +18,14 @@ def calcAveColorInRect(frame, rect):
     aveColors = [aveColors[i] + np.mean(channels[i]) for i in range(3)]
     return aveColors
 
+def calcAveColorOfRects(frame, rects):
+    aveHSV = [0, 0, 0]
+    for rect in rects:
+        tmpAveHSV = calcAveColorInRect(frame, rect)
+        aveHSV = [round(aveHSV[i] + tmpAveHSV[i]) for i in range(3)] 
+    aveHSV = [aveHSV[i] // 2 for i in range(3)] if len(rects) == 2 else aveHSV
+    return aveHSV
+
 def mergeRects(rects):
 
     # If there is one contour, return first

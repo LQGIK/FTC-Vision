@@ -6,10 +6,7 @@ def main():
     # Only for LGG-Laptop
     cap.set(cv2.CAP_PROP_EXPOSURE, -5)
 
-    # Get image dimensions
-    global IMG_HEIGHT, IMG_WIDTH, error
     _, frame = cap.read()
-    IMG_HEIGHT, IMG_WIDTH, _ = frame.shape
 
     while (True):
 

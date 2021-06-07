@@ -97,6 +97,8 @@ class AimBotPipeline:
         output = cv2.putText(output, coords, (cx, cy), self.font, 0.5, (0, 255, 0)) 
 
 
+        print()
+
         return thresh if self.DEBUG_MODE_ON else output
 
         

@@ -183,30 +183,16 @@ def goal_pipeline(input):
         rects.append(cv2.boundingRect(contour))
 
 
-
-    aveH = 0
-    aveS = 0
-    aveV = 0
+    aveHSV = [0, 0, 0]
     for rect in rects:
         x, y, w, h = rect
         submat = hsv_frame[y:y+h,x:x+w,:]
-        h_frame = submat[:,:,0]
-        s_frame = submat[:,:,1]
-        v_frame = submat[:,:,2]
+        HSVChannels = [submat[:,:,i] for i in range(3)]
+        aveHSV = [aveHSV[i] + np.mean(HSVChannels[i]) for i in range(3)]
 
-        tmpAveH = np.mean(h_frame)
-        tmpAveS = np.mean(s_frame)
-        tmpAveV = np.mean(v_frame)
+    aveHSV = [aveHSV[i] / 2 for i in range(3)]
 
-        aveH += tmpAveH
-        aveS += tmpAveS
-        aveV += tmpAveV
-
-    aveH /= 2
-    aveS /= 2
-    aveV /= 2
-
-    print("Ave HSV: " + str(aveH) + "   " + str(aveS) + "   " + str(aveV))
+    print("Ave HSV: " + str(aveHSV[0]) + "   " + str(aveHSV[1]) + "   " + str(aveHSV[2]))
 
     '''
     # 25 margin
@@ -225,6 +211,8 @@ def goal_pipeline(input):
     hMOE = 25
     sMOE = 90
     vMOE = 110
+
+    
 
     hMin = aveH - hMOE
     hMax = aveH + hMOE
