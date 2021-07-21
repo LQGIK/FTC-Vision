@@ -6,32 +6,35 @@ from VisionUtils import RECT_OPTION
 from VisionUtils import sortRectsByMaxOption
 from VisionUtils import mergeRects
 from VisionUtils import calcAveColorInRect
+from VisionUtils import submat
 from MathUtils import clip
+from copy import deepcopy
 
 
 class AimBotPipeline:
     def __init__(self, MIN_HSV, MAX_HSV):
-        self.MIN_HSV        = MIN_HSV
-        self.MAX_HSV        = MAX_HSV
-        self.IMG_HEIGHT     = 0
-        self.IMG_WIDTH      = 0
-        self.marginMatrix   = [25, 90, 50]
+        self.MIN_HSV            = MIN_HSV
+        self.MAX_HSV            = MAX_HSV
+        self.IMG_HEIGHT         = 0
+        self.IMG_WIDTH          = 0
+        self.marginMatrix       = [10, 10, 10]
+        self.CONVERSION         = cv2.COLOR_BGR2HSV #cv2.COLOR_BGR2YCbCr
+        self.sideLength         = 20
 
+        self.red                = (0, 0, 255)
+        self.green              = (0, 255, 0)
+        self.thickness          = 2
+        self.font               = cv2.FONT_HERSHEY_COMPLEX
 
-        self.red            = (0, 0, 255)
-        self.green          = (0, 255, 0)
-        self.thickness      = 2
-        self.font           = cv2.FONT_HERSHEY_COMPLEX
+        self.goalFound          = False
+        self.goalDegreeError    = 0
+        self.goalDistance       = 0
+        self.goalRect           = [0, 0, 0, 0]
 
-        self.goalFound      = False
-        self.goalDegreeError = 0
-        self.goalDistance   = 0
-        self.goalRect       = [0, 0, 0, 0]
-
-        self.DEBUG_MODE_ON  = True
-        self.INIT_COMPLETED = False
-        self.START_SECONDS  = time.time()
-        self.INIT_SECONDS   = 5
+        self.DEBUG_MODE_ON      = False
+        self.INIT_COMPLETED     = False
+        self.START_SECONDS      = time.time()
+        self.INIT_SECONDS       = 5
 
 
 
@@ -44,14 +47,14 @@ class AimBotPipeline:
 
     def regPipe(self, input):
                 
-        output = input
+        output = deepcopy(input)
 
         # Get sizing of image
         self.IMG_HEIGHT, self.IMG_WIDTH, _ = input.shape
 
         # Convert & Blur
-        HSVInput = cv2.cvtColor(input, cv2.COLOR_BGR2HSV)
-        blur = cv2.GaussianBlur(HSVInput, (35, 35), 0)
+        converted = cv2.cvtColor(input, self.CONVERSION)
+        blur = cv2.GaussianBlur(converted, (35, 35), 0)
 
         # Threshold
         thresh = cv2.inRange(blur, self.MIN_HSV, self.MAX_HSV)
@@ -73,7 +76,7 @@ class AimBotPipeline:
         rects = [cv2.boundingRect(contour) for contour in contours]
 
         # Auto-Update HSV midgame
-        #self.updateHSV(output, rects)
+        #self.updateThresh(output, rects)
 
         # Heuristics to get goalRect
         largestRects = sortRectsByMaxOption(2, RECT_OPTION.AREA, rects)
@@ -94,10 +97,8 @@ class AimBotPipeline:
         cv2.rectangle(output, (gx, gy), (gx + gw, gy + gh), self.green, self.thickness)
         cv2.line(output, (cx, cy), (cx + pixelError, cy),   self.red,   self.thickness)
         coords = str("(" + str(cx) + ", " + str(cy) + ")")
-        output = cv2.putText(output, coords, (cx, cy), self.font, 0.5, (0, 255, 0)) 
+        cv2.putText(output, coords, (cx, cy), self.font, 0.5, (0, 255, 0)) 
 
-
-        print()
 
         return thresh if self.DEBUG_MODE_ON else output
 
@@ -106,45 +107,53 @@ class AimBotPipeline:
     def initPipe(self, input):
         # Run for 5s
 
-        output = input
+        output = deepcopy(input)
 
         # Get sizing of image
         self.IMG_HEIGHT, self.IMG_WIDTH, _ = input.shape
 
         # Convert & Blur
-        HSVInput = cv2.cvtColor(input, cv2.COLOR_BGR2HSV)
-        blur = cv2.GaussianBlur(HSVInput, (35, 35), 0)
+        converted = cv2.cvtColor(input, self.CONVERSION)
+        blur = cv2.GaussianBlur(converted, (35, 35), 0)
 
         # Get center rect
-        sideLength = 50
-        x = (self.IMG_WIDTH//2) - sideLength//2
-        y = (self.IMG_HEIGHT//2) - sideLength//2
-        initRect = [x, y, x+sideLength, y+sideLength]
+        x = (self.IMG_WIDTH//2) - self.sideLength//2 # (Center of image - half a sidelength)
+        y = (self.IMG_HEIGHT//2) - self.sideLength//2
+        initRect = [x, y, self.sideLength, self.sideLength]
 
         # Calculate average HSV within initRect     Note: updateHSV expects an array of rectangles
-        self.updateHSV(blur, [initRect])
+        self.updateThresh(blur, [initRect])
 
         # Log rect for driver-placement
-        output = cv2.rectangle(output, (x,y), (x+sideLength, y+sideLength), self.green, self.thickness)
+        cv2.rectangle(output, (x,y), (x+self.sideLength, y+self.sideLength), self.green, self.thickness)
 
         # Log time left
         timeLeft = str(round(time.time() - self.START_SECONDS))
         mx = self.IMG_WIDTH - 100
         my = self.IMG_HEIGHT - 100
-        output = cv2.putText(output, timeLeft, (mx, my), self.font, 0.5, (0, 255, 0)) 
+        cv2.putText(output, timeLeft, (mx, my), self.font, 0.5, (0, 255, 0)) 
 
         return output
 
 
-    def updateHSV(self, frame, rects):
-        aveHSV = [0, 0, 0]
-        for rect in rects:
-            tmpAveHSV = calcAveColorInRect(frame, rect)
-            aveHSV = [round(aveHSV[i] + tmpAveHSV[i]) for i in range(3)] 
-        aveHSV = [aveHSV[i] // 2 for i in range(3)] if len(rects) == 2 else aveHSV
+    def updateThresh(self, frame, rects):
+        rectLength = len(rects)
+        if (rectLength > 0):
+            aveHSV = [0, 0, 0]
+            for rect in rects:
+                # Get average HSV of frame
+                tmpAveHSV = calcAveColorInRect(frame, rect)
 
-        # Make thresholds and clip if necessary
-        self.MAX_HSV = tuple([clip(aveHSV[i] + self.marginMatrix[i], 0, 255) for i in range(3)])
-        self.MIN_HSV = tuple([clip(aveHSV[i] - self.marginMatrix[i], 0, 255) for i in range(3)])
+                # Set aveHSV[0] to the sum of aveHSV[0] + tmpAveHSV[0] 
+                aveHSV = [round(aveHSV[i] + tmpAveHSV[i]) for i in range(3)] 
 
-        print("Ave HSV: " + str(aveHSV[0]) + "   " + str(aveHSV[1]) + "   " + str(aveHSV[2]))
+            # We summed up all respective averages for H, S, and V, or Y, Cb, Cr
+            # We need to divide by however many rectangles we summed together, assuming not dividing by 0
+            aveHSV = [aveHSV[i] // rectLength for i in range(3)]
+
+            # Make thresholds and clip if necessary
+            self.MAX_HSV = tuple([clip(aveHSV[i] + self.marginMatrix[i], 0, 255) for i in range(3)])
+            self.MIN_HSV = tuple([clip(aveHSV[i] - self.marginMatrix[i], 0, 255) for i in range(3)])
+
+            print("Ave HSV: " + str(aveHSV[0]) + "   " + str(aveHSV[1]) + "   " + str(aveHSV[2]))
+        

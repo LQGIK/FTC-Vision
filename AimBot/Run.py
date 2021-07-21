@@ -6,7 +6,7 @@ def main():
     cap = cv2.VideoCapture(0)
 
     # Only for LGG-Laptop
-    cap.set(cv2.CAP_PROP_EXPOSURE, -5)
+    cap.set(cv2.CAP_PROP_EXPOSURE, -4)
 
     # Read in initial frame
     _, frame = cap.read()
@@ -33,7 +33,7 @@ def main():
 
 
         # Display the resulting frame
-        cv2.imshow('frame', cv2.flip(frame, 1))
+        cv2.imshow('output', cv2.flip(output, 1))
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 

@@ -11,12 +11,15 @@ class RECT_OPTION(Enum):
     AREA    = 4
 
 def calcAveColorInRect(frame, rect):
-    aveColors = [0, 0, 0]
+    res_submat = submat(frame, rect)
+    aveColor = cv2.mean(res_submat)
+    return aveColor
+
+def submat(frame, rect):
     x, y, w, h = rect
-    submat = frame[y:y+h,x:x+w,:]
-    channels = [submat[:,:,i] for i in range(3)]
-    aveColors = [aveColors[i] + np.mean(channels[i]) for i in range(3)]
-    return aveColors
+    res_submat = frame[y:y+h,x:x+w,:]
+    return res_submat
+
 
 def calcAveColorOfRects(frame, rects):
     aveHSV = [0, 0, 0]
