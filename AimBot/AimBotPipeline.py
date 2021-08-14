@@ -118,8 +118,11 @@ class AimBotPipeline:
 
         # Get center rect
         x = (self.IMG_WIDTH//2) - self.sideLength//2 # (Center of image - half a sidelength)
-        y = (self.IMG_HEIGHT//2) - self.sideLength//2
-        initRect = [x, y, self.sideLength, self.sideLength]
+        #y = (self.IMG_HEIGHT//2) - self.sideLength//2
+
+        y = 120
+        h = 50
+        initRect = [x, y, self.sideLength, h]
 
         # Calculate average HSV within initRect     Note: updateHSV expects an array of rectangles
         self.updateThresh(blur, [initRect])

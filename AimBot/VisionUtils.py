@@ -95,9 +95,9 @@ def sortRectsByMinOption(n, option, rects):
     return sortedRects
 
 def getMaxIndex(rects, option):
-    alpha_index = 0;
-    maxV = -sys.maxsize - 1;
-    curV = 0;
+    alpha_index = 0
+    maxV = -sys.maxsize - 1
+    curV = 0
     for i in range(len(rects)):
 
         switcher = {
@@ -116,9 +116,9 @@ def getMaxIndex(rects, option):
     return alpha_index;
 
 def getMinIndex(rects, option):
-    beta_index = 0;
-    maxV = sys.maxsize;
-    curV = 0;
+    beta_index = 0
+    maxV = sys.maxsize
+    curV = 0
     for i in range(len(rects)):
 
         switcher = {
