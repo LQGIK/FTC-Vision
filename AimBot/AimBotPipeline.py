@@ -25,6 +25,7 @@ class AimBotPipeline:
         self.sideLength         = 20
         self.EXTEND_MARGIN      = 50
         self.HSV2_RATE          = 1
+        self.aveHSV             = [0, 0, 0]
 
         self.red                = (0, 0, 255)
         self.green              = (0, 255, 0)
@@ -46,7 +47,7 @@ class AimBotPipeline:
     def processFrame(self, input):
 
         self.INIT_COMPLETED = (time.time() - self.START_SECONDS) > self.INIT_SECONDS
-        output = self.regPipeV2(input) if self.INIT_COMPLETED else self.initPipe(input)
+        output = self.regPipe(input) if self.INIT_COMPLETED else self.initPipe(input)
         return output
 
 
